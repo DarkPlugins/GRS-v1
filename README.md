@@ -49,9 +49,9 @@ It was not intended as a finished product, but as a technical testbed for AI-dri
 
 ## Hardware
 
-- Raspberry Pi (Zero 2 W or similar)
-- Rotary Encoder (KY-040 style)
-- 1.28" round SPI LCD (240x240)
+- Raspberry Pi Zero 2 WH
+- Rotary Encoder KY-040
+- 1.28" round SPI LCD (Round 240x240)
 - Optional Bluetooth audio target
 
 ## Software Architecture
