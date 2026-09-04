@@ -5,17 +5,16 @@ Requires=bluetooth.service
 
 [Service]
 Type=simple
-User=darkplugins
+User=grs
 Group=audio
-WorkingDirectory=/home/darkplugins/gamesradiostation
+WorkingDirectory=/home/grs
 Environment=DISPLAY=:0
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStartPre=/bin/sleep 2
-ExecStartPre=/usr/bin/pulseaudio --start
-ExecStartPre=/bin/bash -c '/usr/bin/pactl list short sinks | awk "/darkplugins|bluez/ {print $2; exit}" | xargs -r /usr/bin/pactl set-default-sink || true'
-ExecStart=/usr/bin/python3 /home/darkplugins/gamesradiostation/Startup.py
-StandardOutput=append:/home/darkplugins/gamesradiostation/lib/logs_pi/startup_log.txt
-StandardError=append:/home/darkplugins/gamesradiostation/lib/logs_pi/startup_err.txt
+ExecStartPre=/bin/bash -c '/usr/bin/pactl list short sinks | awk "/grs|bluez/ {print $2; exit}" | xargs -r /usr/bin/pactl set-default-sink || true'
+ExecStart=/usr/bin/python3 /home/grs/Startup.py
+StandardOutput=journal
+StandardError=journal
 Restart=always
 RestartSec=3
 

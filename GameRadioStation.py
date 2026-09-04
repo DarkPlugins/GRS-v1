@@ -1,6 +1,5 @@
 import os, json
 import random
-import threading
 import time
 
 from GetRadioData import scan_game_radios, GameRadio, SongEntry
@@ -103,17 +102,12 @@ class GameRadioStation:
         return current_game_radio, current_song_entry
 
     def start_song(self, current_game_radio: GameRadio, current_song_entry: SongEntry):
-        # Lock inputs while switching (if encoder is already set)
-        if self.encoder is not None:
-            self.encoder.lock()
-            self.logger.write("[LOCK] Locked input")
-
         if self.CurrentGame is not current_game_radio:
             self.CurrentGame = current_game_radio
             img = Image.open(current_game_radio.path_game_thumbnail).resize((240, 240))
             self.logger.write(f"[INFO] Showing image... Game-Image-Path: {current_game_radio.path_game_thumbnail}")
             self.lcd.ShowImage(img)
-            time.sleep(1)
+            time.sleep(0.15)
 
         img = Image.open(current_song_entry.path_thumbnail).resize((240, 240))
         self.logger.write(f"[INFO] Showing image... Song-Image-Path: {current_song_entry.path_thumbnail}")
@@ -123,10 +117,6 @@ class GameRadioStation:
         self.save_current_state_to_json(current_game_radio, current_song_entry)
         self.CurrentSong = current_song_entry
 
-        # Unlock here
-        if self.encoder is not None:
-            threading.Timer(0.5, self.encoder.unlock).start()  # unlock asynchronously
-            self.logger.write("[UNLOCK] Unlocked input (async)")
 
     def next_game(self):
         """
@@ -150,10 +140,6 @@ class GameRadioStation:
         self.start_song(next_game, random.choice(next_game.songs))
         self.logger.write(f"[INFO] Switched to game index {next_index}: {self.CurrentGame.game_name}")
 
-        # Unlock here
-        if self.encoder is not None:
-            threading.Timer(0.2, self.encoder.unlock).start()  # unlock asynchronously
-            self.logger.write("[UNLOCK] Unlocked input (async)")
 
     def switch_song(self, direction: str):
         """

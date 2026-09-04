@@ -118,8 +118,8 @@ class BluetoothService:
 
     def disconnect_all_targets(self):
         """
-        Trennt alle aktuell verbundenen Bluetooth-Geräte,
-        ohne den Scan-Thread oder Service zu stoppen.
+        Disconnect all currently connected Bluetooth devices without stopping
+        the scan thread or the service.
         """
         if not self.bus:
             self.logger.write("[WARN] No D-Bus available, cannot disconnect any device.")

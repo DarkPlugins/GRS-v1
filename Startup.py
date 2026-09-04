@@ -28,8 +28,9 @@ class Startup:
         self.lcd.clear()
         self.show_loading_image()
 
-        # Initialize bluetooth connection
-        self.bluetooth_service = BluetoothService(self.logger, self.path_root, ['mycar'], scan_interval=5, auto_start=True)
+        # Target prefixes must be lowercase because BluetoothService lowercases
+        # the discovered device name before comparing it with these values.
+        self.bluetooth_service = BluetoothService(self.logger, self.path_root, ['n-m405'], scan_interval=5, auto_start=True)
 
         # Initialize Radio Controller
         self.controller = RadioController(self.logger)
@@ -37,7 +38,7 @@ class Startup:
         # Initialize game radio station
         self.game_radio_station = GameRadioStation(self.logger, self.controller, self.path_root, self.lcd)
 
-        # Initialize rotary encoder (pins BCM 17, 18, 23)
+        # Initialize rotary encoder (pins BCM 5, 6, 23)
         self.encoder = Encoder(self.logger, self.game_radio_station, self.controller, self.bluetooth_service, self.lcd)
 
         # Start the main loop to keep program alive
