@@ -1,2 +1,5 @@
 .idea/
 .venv/
+lib/last_run.json
+lib/last-run-*.tmp
+lib/logs/

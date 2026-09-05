@@ -7,10 +7,7 @@ import threading
 
 from gpiozero import Button, RotaryEncoder
 
-from PlayRadio import RadioController
-from BluetoothService import BluetoothService
 from Logger import Logger
-from lib import LCD_1inch28
 
 
 class Encoder:
@@ -24,9 +21,6 @@ class Encoder:
         self,
         logger: Logger,
         game_radio_station,
-        controller: RadioController,
-        bluetooth_service: BluetoothService,
-        lcd: LCD_1inch28,
         clk_pin: int = DEFAULT_CLK_PIN,
         dt_pin: int = DEFAULT_DT_PIN,
         sw_pin: int = DEFAULT_SW_PIN,
@@ -35,9 +29,6 @@ class Encoder:
     ):
         self.logger = logger
         self.game_radio_station = game_radio_station
-        self.controller = controller
-        self.bluetooth_service = bluetooth_service
-        self.lcd = lcd
 
         self.clk_pin = clk_pin
         self.dt_pin = dt_pin
@@ -97,7 +88,9 @@ class Encoder:
         with self._state_lock:
             if self._closed:
                 return
-        self._actions.put(action)
+            # Keep the closed check and enqueue atomic so close() can place the
+            # sentinel after all actions that were accepted before shutdown.
+            self._actions.put(action)
 
     # ---------------------------------------------------
     # Single consumer for all input actions
@@ -148,10 +141,18 @@ class Encoder:
         self.encoder.when_rotated_clockwise = None
         self.encoder.when_rotated_counter_clockwise = None
         self.button.when_released = None
-        self._actions.put(None)
+        with self._state_lock:
+            while True:
+                try:
+                    self._actions.get_nowait()
+                except queue.Empty:
+                    break
+                else:
+                    self._actions.task_done()
+            self._actions.put(None)
 
         if self._worker.is_alive():
-            self._worker.join(timeout=2)
+            self._worker.join()
 
         self.encoder.close()
         self.button.close()

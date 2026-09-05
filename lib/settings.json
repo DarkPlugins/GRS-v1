@@ -1,0 +1,29 @@
+{
+    "logging": {
+        "enabled": true
+    },
+    "bluetooth": {
+        "targets": [
+            "n-m405"
+        ],
+        "scan_interval": 5
+    },
+    "encoder": {
+        "clk_pin": 5,
+        "dt_pin": 6,
+        "sw_pin": 23,
+        "rotary_bounce_time": 0.003,
+        "button_bounce_time": 0.05
+    },
+    "lcd": {
+        "spi_bus": 0,
+        "spi_device": 0,
+        "spi_freq": 40000000,
+        "rst": 27,
+        "dc": 25,
+        "bl": 18,
+        "tp_int": 4,
+        "tp_rst": 17,
+        "bl_freq": 1000
+    }
+}

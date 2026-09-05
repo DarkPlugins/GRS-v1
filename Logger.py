@@ -1,5 +1,6 @@
 import os
 import datetime
+import sys
 import threading
 
 class Logger:
@@ -18,7 +19,7 @@ class Logger:
     LOG_RETENTION_DAYS = 7
     FILE_ENCODING = "utf-8"
 
-    def __init__(self, root_path: str):
+    def __init__(self, root_path: str, enabled: bool = True):
         """
         Initialize the logger.
         Args:
@@ -26,11 +27,31 @@ class Logger:
         """
         self.root_path = os.path.abspath(root_path)
         self.logs_path = os.path.join(self.root_path, self.LOG_DIR_NAME)
+        self.enabled = bool(enabled)
         self._lock = threading.Lock()
+        if not self.enabled:
+            return
+
         # Ensure logs directory exists and today's file is present
-        self._ensure_log_dir_and_file()
+        try:
+            self._ensure_log_dir_and_file()
+        except OSError as exc:
+            self._report("ERROR", "creating log file", exc)
         # Clean old logs
         self._cleanup_old_logs()
+
+    def _report(self, level: str, operation: str, error: Exception) -> None:
+        """Emit a structured fallback when the log file cannot be used."""
+        if not self.enabled:
+            return
+        try:
+            sys.stderr.write(
+                f"[{level}] [LOGGER] {operation}: {type(error).__name__}: {error}\n"
+            )
+        except (OSError, ValueError):
+            # stderr may be closed during interpreter shutdown; there is no
+            # reliable fallback at that point.
+            return
 
     def _ensure_log_dir_and_file(self):
         """Create logs directory and ensure today's log file exists."""
@@ -68,12 +89,10 @@ class Logger:
                 if file_date <= cutoff_date:
                     try:
                         os.remove(os.path.join(self.logs_path, file_name))
-                    except OSError:
-                        # fail silently; do not raise from cleanup
-                        pass
-        except OSError:
-            # If logs_path is not accessible, ignore cleanup
-            pass
+                    except OSError as exc:
+                        self._report("WARN", f"removing old log '{file_name}'", exc)
+        except OSError as exc:
+            self._report("WARN", "cleaning old logs", exc)
 
     def write(self, message: str):
         """
@@ -81,24 +100,33 @@ class Logger:
         The line format is: [YYYY-MM-DD HH:MM:SS] {message}
         Thread-safe.
         """
-        print(message)
+        if not self.enabled:
+            return
+
+        print(message, flush=True)
         timestamp = datetime.datetime.now().strftime(self.TIMESTAMP_FORMAT)
-        line = f"[{timestamp}] {{{message}}}\n"
+        line = f"[{timestamp}] {message}\n"
         log_path = self._current_log_path()
-        # Ensure today's file exists (in case date rolled over since init)
-        self._ensure_log_dir_and_file()
         with self._lock:
             try:
+                log_path = self._current_log_path()
+                # Ensure today's file exists (in case date rolled over since init)
+                self._ensure_log_dir_and_file()
                 with open(log_path, "a", encoding=self.FILE_ENCODING) as f:
                     f.write(line)
-            except OSError:
-                # If write fails, silently ignore to avoid breaking caller code.
-                pass
+            except OSError as exc:
+                self._report("ERROR", f"writing '{log_path}'", exc)
 
     def rotate_if_new_day(self):
         """
         Call this periodically if the process runs across midnight.
         Ensures today's file exists and performs cleanup once per call.
         """
-        self._ensure_log_dir_and_file()
-        self._cleanup_old_logs()
+        if not self.enabled:
+            return
+        with self._lock:
+            try:
+                self._ensure_log_dir_and_file()
+            except OSError as exc:
+                self._report("ERROR", "rotating log file", exc)
+            self._cleanup_old_logs()

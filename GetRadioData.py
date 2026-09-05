@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass, field
 from typing import List
 
+SUPPORTED_AUDIO_EXTENSIONS = (".mp3", ".wav")
+
 # --- Data classes ---
 @dataclass
 class SongEntry:
@@ -23,7 +25,7 @@ def is_audio_file(filename: str) -> bool:
     Return True if filename ends with a supported audio extension.
     Case-insensitive check for .mp3 and .wav files.
     """
-    return filename.lower().endswith((".mp3", ".wav"))
+    return filename.lower().endswith(SUPPORTED_AUDIO_EXTENSIONS)
 
 def find_thumbnail_for(base_dir: str, song_name: str) -> str:
     """
@@ -39,7 +41,7 @@ def scan_game_radios(root_path: str) -> List[GameRadio]:
 
     Expected structure:
       root_path/lib/default_thumbnail.png        # optional global default thumbnail
-      root_path/GameRadios/<GameFolder>/         # each game folder
+      root_path/gameradios/<GameFolder>/         # each game folder
           thumbnail.png                          # optional game-level thumbnail
           <song>.mp3 / <song>.wav                # audio files
           <song>.png                             # optional per-song thumbnail
@@ -53,7 +55,7 @@ def scan_game_radios(root_path: str) -> List[GameRadio]:
     games: List[GameRadio] = []
 
     # Build path to the global default thumbnail and check existence
-    default_thumb = os.path.join(root_path, r"lib\default_thumbnail.png")
+    default_thumb = os.path.join(root_path, "lib", "default_thumbnail.png")
     default_thumb_exists = os.path.isfile(default_thumb)
 
     # Path to the GameRadios folder where game subfolders live
@@ -118,7 +120,8 @@ def scan_game_radios(root_path: str) -> List[GameRadio]:
                 song = SongEntry(name=base_name, path_song=file_path, path_thumbnail=thumb)
                 game.songs.append(song)
 
-        # Append the populated GameRadio object to the results
-        games.append(game)
+        # Empty folders cannot be selected or played, so ignore them early.
+        if game.songs:
+            games.append(game)
 
     return games

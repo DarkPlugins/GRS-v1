@@ -37,8 +37,8 @@ import logging
 import numpy as np
 
 class RaspberryPi:
-    def __init__(self,spi=spidev.SpiDev(0,0),spi_freq=40000000,rst = 27,dc = 25,bl = 18,tp_int = 4,tp_rst = 17,bl_freq=1000):
-        import RPi.GPIO      
+    def __init__(self, spi=None, spi_freq=40000000, rst=27, dc=25, bl=18, tp_int=4, tp_rst=17, bl_freq=1000, spi_bus=0, spi_device=0):
+        import RPi.GPIO
         self.np=np
         self.RST_PIN= rst
         self.DC_PIN = dc
@@ -57,7 +57,9 @@ class RaspberryPi:
         self.GPIO.setwarnings(False)
       
         #Initialize SPI
-        self.SPI = spi
+        self.SPI = spi if spi is not None else spidev.SpiDev(spi_bus, spi_device)
+        self.I2C = None
+        self._touch_initialized = False
         
         # #Initialize I2C
         #self.I2C = smbus.SMBus(1)   # No touch screen, so not required
@@ -85,6 +87,7 @@ class RaspberryPi:
 
         self.GPIO.setup(self.TP_INT,    self.GPIO.IN,self.GPIO.PUD_UP)
         self.GPIO.setup(self.TP_RST,    self.GPIO.OUT)
+        self._touch_initialized = True
 
 
     def i2c_write_byte(self, Addr, val):
@@ -117,16 +120,18 @@ class RaspberryPi:
         if self.SPI!=None :
             self.SPI.close()
         
-        if self.I2C!=None :
+        if self.I2C is not None:
             self.I2C.close()
         
         logging.debug("gpio cleanup...")
         self.GPIO.output(self.RST_PIN, 1)
         self.GPIO.output(self.DC_PIN, 0) 
 
-        self.GPIO.output(self.TP_RST, 1)   
+        if self._touch_initialized:
+            self.GPIO.output(self.TP_RST, 1)
            
-        self._pwm.stop()
+        if getattr(self, "_pwm", None) is not None:
+            self._pwm.stop()
         time.sleep(0.001)
         self.GPIO.output(self.BL_PIN, 1)
         #self.GPIO.cleanup()

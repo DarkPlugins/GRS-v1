@@ -66,6 +66,7 @@ The complete project is placed directly under `/home/grs`:
 ├── VLCPlayer.py
 ├── BluetoothService.py
 ├── Logger.py
+├── Settings.py
 ├── startup_script.service
 ├── gameradios/
 │   └── Grand Theft Auto/
@@ -75,6 +76,8 @@ The complete project is placed directly under `/home/grs`:
 └── lib/
     ├── LCD_1inch28.py
     ├── config.py
+    ├── settings.json
+    ├── last_run.json          # generated at runtime
     ├── loading.png
     ├── closed.png
     ├── default_thumbnail.png
@@ -152,13 +155,28 @@ Enable Bluetooth:
 sudo systemctl enable --now bluetooth
 ~~~
 
-If Bluetooth audio is used, change the target in `/home/grs/Startup.py` to a lower-case prefix of the actual device name. For example:
+If Bluetooth audio is used, change the target in `/home/grs/lib/settings.json` to a lower-case prefix of the actual device name. For example:
 
 ~~~python
-['n-m405']
+"targets": ["n-m405"]
 ~~~
 
 The target must be lower-case because `BluetoothService` lowercases the discovered device name before comparing it with the target. The service only connects to devices whose reported name starts with the configured prefix.
+
+### Runtime settings
+
+`/home/grs/lib/settings.json` contains the Bluetooth target, the KY-040 pins, the LCD/SPI pins and frequencies, debounce values, and the logging switch. Set `logging.enabled` to `false` to disable both console and file logging. The last selected game and song are stored separately in `/home/grs/lib/last_run.json`.
+
+When upgrading from an older version whose `lib/settings.json` contains only the last selected game and song, `Settings.py` moves that file to `lib/last_run.json` automatically and uses the new configuration defaults.
+
+The default pin configuration is:
+
+~~~json
+{
+  "encoder": {"clk_pin": 5, "dt_pin": 6, "sw_pin": 23},
+  "lcd": {"spi_bus": 0, "spi_device": 0, "rst": 27, "dc": 25, "bl": 18}
+}
+~~~
 
 ### 5. Enable SPI for the LCD
 
@@ -267,7 +285,7 @@ sudo systemctl status startup_script.service --no-pager -l
 - `203/EXEC` for `/usr/bin/pulseaudio`: an old service file still contains `ExecStartPre=/usr/bin/pulseaudio --start`. Remove that line.
 - `209/STDOUT`: an old service file uses a missing `lib/logs_pi` path. The current file uses `StandardOutput=journal` and `StandardError=journal`.
 - Only the loading image is visible: check the journal first. Then verify that `/home/grs/gameradios/` exists and every game folder contains an audio file and `thumbnail.png`.
-- Bluetooth service is initialized but no target is found: check the device name with `bluetoothctl devices` and use a matching lower-case prefix in `/home/grs/Startup.py`. The device must also be powered on and discoverable for the first connection.
+- Bluetooth service is initialized but no target is found: check the device name with `bluetoothctl devices` and use a matching lower-case prefix in `/home/grs/lib/settings.json`. The device must also be powered on and discoverable for the first connection.
 - `pactl info` fails: PipeWire/PipeWire-Pulse is not running for user `grs`, or `pulseaudio-utils` is missing.
 - The LCD remains blank: enable SPI and verify the pinout in this README.
 
@@ -281,6 +299,7 @@ sudo systemctl restart startup_script.service
 ## Software architecture
 
 - `Startup.py`: initializes the logger, LCD, Bluetooth, radio controller, and encoder
+- `Settings.py`: loads and validates `lib/settings.json`
 - `Encoder.py`: handles KY-040 input, debounce, and the serial worker thread
 - `GameRadioStation.py`: selects games and songs
 - `GetRadioData.py`: scans `/home/grs/gameradios`

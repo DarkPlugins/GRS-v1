@@ -11,7 +11,8 @@ WorkingDirectory=/home/grs
 Environment=DISPLAY=:0
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStartPre=/bin/sleep 2
-ExecStartPre=/bin/bash -c '/usr/bin/pactl list short sinks | awk "/grs|bluez/ {print $2; exit}" | xargs -r /usr/bin/pactl set-default-sink || true'
+# Sink selection is repeated by BluetoothService after a device connects.
+ExecStartPre=/bin/bash -c '/usr/bin/pactl list short sinks | awk "/grs|bluez/ {print \$2; exit}" | xargs -r /usr/bin/pactl set-default-sink || true'
 ExecStart=/usr/bin/python3 /home/grs/Startup.py
 StandardOutput=journal
 StandardError=journal
